@@ -1,127 +1,151 @@
 import {
   Text,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
   SafeAreaView,
+  Image,
+  ImageBackground,
 } from "react-native";
-import React, { useState } from "react";
-import { auth } from "../FirebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
-import { db } from "../FirebaseConfig";
+import React from "react";
+import { Linking } from "react-native"; // Import Linking
 import { router } from "expo-router";
-import { getDoc, doc } from "firebase/firestore";
 
 const index = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-
-  const signIn = async () => {
-    try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      const user = userCredential.user;
-
-      // Get the user's data from Firestore to check the roler
-      const userDoc = await getDoc(doc(db, "users", user.uid));
-      if (userDoc.exists()) {
-        const userData = userDoc.data();
-        const userRole = userData.role;
-
-        // Navigate based on the user's role
-        if (userRole === "admin") {
-          router.replace("/admin"); // Navigate to the admin page
-        } else {
-          router.replace("/(tabs)"); // Navigate to the regular user page
-        }
-      }
-    } catch (error) {
-      console.log("Sign in failed:", error);
-      alert("Sign in failed");
-    }
+  const openURL = (url) => {
+    Linking.openURL(url);
   };
 
   return (
-    <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Login</Text>
-      <TextInput
-        style={styles.textInput}
-        placeholder="email"
-        value={email}
-        onChangeText={setEmail}
-      />
-      <TextInput
-        style={styles.textInput}
-        placeholder="password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-      <TouchableOpacity style={styles.button} onPress={signIn}>
-        <Text style={styles.text}>Login</Text>
-      </TouchableOpacity>
-      <TouchableOpacity
-        style={styles.button}
-        onPress={() => router.push("/signUp")}
-      >
-        <Text style={styles.text}>Registrasi</Text>
-      </TouchableOpacity>
-    </SafeAreaView>
+    <ImageBackground
+      source={require("../assets/logo.png")} // Ganti dengan URL atau path gambar Anda
+      style={styles.background}
+    >
+      <SafeAreaView style={styles.container}>
+        <Text style={styles.title}>Smart Tata Ruang</Text>
+
+        <Image
+          source={require("../assets/logo.png")} // Ganti dengan URL atau path gambar Anda
+          style={styles.image}
+        />
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => openURL("https://arcg.is/1eDSni")}
+        >
+          <Text style={styles.text}>Link Peta RTRW/RDTR</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            openURL(
+              "https://experience.arcgis.com/experience/fd022572bda94985a77f6e9e1dceb030?views=View-23"
+            )
+          }
+        >
+          <Text style={styles.text}>Link Sipetarung</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            openURL(
+              "https://experience.arcgis.com/experience/c235e278c2194d2499d1172ff1eb47b1/page/FPR/"
+            )
+          }
+        >
+          <Text style={styles.text}>Link FPR</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            openURL(
+              "https://sapa-halut.maps.arcgis.com/apps/webappviewer/index.html?id=05f82c0c2b3742d88bf959a0e5e086a2&extent=14126360.9278%2C156317.1039%2C14326167.3197%2C223581.6888%2C102100"
+            )
+          }
+        >
+          <Text style={styles.text}>Link Pengendalian</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            openURL(
+              "https://experience.arcgis.com/experience/c235e278c2194d2499d1172ff1eb47b1/page/REGULASI%2F-ATURAN/"
+            )
+          }
+        >
+          <Text style={styles.text}>Link Aturan</Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() => openURL("https://bhumi.atrbpn.go.id/peta")}
+        >
+          <Text style={styles.text}>Link Bhumi</Text>
+        </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.buttonLogin}
+          onPress={() => router.push("/login")}
+        >
+          <Text style={styles.textLogin}>Masuk</Text>
+        </TouchableOpacity>
+      </SafeAreaView>
+    </ImageBackground>
   );
 };
 
 export default index;
 
 const styles = StyleSheet.create({
+  background: {
+    flex: 1,
+  },
   container: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FAFAFA", // A softer white for a modern, minimalist background
+    backgroundColor: "#001A6E", // Tambahkan overlay warna jika diperlukan
+  },
+  image: {
+    width: 100,
+    height: 150,
+    marginBottom: 20,
   },
   title: {
-    fontSize: 28, // A bit larger for a more striking appearance
-    fontWeight: "800", // Extra bold for emphasis
-    marginBottom: 40, // Increased space for a more airy, open feel
-    color: "#1A237E", // A deep indigo for a sophisticated, modern look
-  },
-  textInput: {
-    height: 50, // Standard height for elegance and simplicity
-    width: "90%", // Full width for a more expansive feel
-    backgroundColor: "#FFFFFF", // Pure white for contrast against the container
-    borderColor: "#E8EAF6", // A very light indigo border for subtle contrast
-    borderWidth: 2,
-    borderRadius: 15, // Softly rounded corners for a modern, friendly touch
-    marginVertical: 15,
-    paddingHorizontal: 25, // Generous padding for ease of text entry
-    fontSize: 16, // Comfortable reading size
-    color: "#3C4858", // A dark gray for readability with a hint of warmth
-    shadowColor: "#9E9E9E", // A medium gray shadow for depth
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 4, // Slightly elevated for a subtle 3D effect
+    fontSize: 28,
+    fontWeight: "600",
+    marginTop: 0,
+    marginBottom: 30,
+    color: "#FFFFFF", // Sesuaikan warna teks agar terlihat di atas gambar
   },
   button: {
-    width: "90%",
-    marginVertical: 15,
-    backgroundColor: "#5C6BC0", // A lighter indigo to complement the title color
-    padding: 20,
-    borderRadius: 15, // Matching rounded corners for consistency
+    width: "80%",
+    marginVertical: 10,
+    backgroundColor: "#074799",
+    padding: 15,
+    borderRadius: 10,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#5C6BC0", // Shadow color to match the button for a cohesive look
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 5,
-    elevation: 5,
+  },
+  buttonLogin: {
+    width: "90%",
+    marginVertical: 20,
+    backgroundColor: "rgba(255, 255, 255,255)",
+
+    padding: 15,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
   },
   text: {
-    color: "#FFFFFF", // Maintained white for clear visibility
-    fontSize: 18, // Slightly larger for emphasis
-    fontWeight: "600", // Semi-bold for a balanced weight
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  textLogin: {
+    color: "#11111",
+    fontSize: 16,
+    fontWeight: "600",
   },
 });

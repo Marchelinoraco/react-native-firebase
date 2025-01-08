@@ -47,24 +47,27 @@ const SignUpScreen = () => {
 
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.title}>Sign Up</Text>
+      <Text style={styles.title}>Mendaftar Akun</Text>
       <TextInput
         style={styles.textInput}
         placeholder="Name"
         value={name}
         onChangeText={setName}
+        placeholderTextColor="#808080"
       />
       <TextInput
         style={styles.textInput}
         placeholder="Email"
         value={email}
         onChangeText={setEmail}
+        placeholderTextColor="#808080"
       />
       <TextInput
         style={styles.textInput}
         placeholder="Password"
         value={password}
         onChangeText={setPassword}
+        placeholderTextColor="#808080"
         secureTextEntry
       />
       <TouchableOpacity style={styles.button} onPress={signUp}>
@@ -81,13 +84,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#FAFAFA", // A softer white for a modern, minimalist background
+    backgroundColor: "#074799", // A softer white for a modern, minimalist background
   },
   title: {
     fontSize: 28, // A bit larger for a more striking appearance
     fontWeight: "800", // Extra bold for emphasis
     marginBottom: 40, // Increased space for a more airy, open feel
-    color: "#1A237E", // A deep indigo for a sophisticated, modern look
+    color: "#FAFAFA", // A deep indigo for a sophisticated, modern look
   },
   textInput: {
     height: 50, // Standard height for elegance and simplicity
@@ -109,12 +112,12 @@ const styles = StyleSheet.create({
   button: {
     width: "90%",
     marginVertical: 15,
-    backgroundColor: "#5C6BC0", // A lighter indigo to complement the title color
+    backgroundColor: "#001A6E",
     padding: 20,
-    borderRadius: 15, // Matching rounded corners for consistency
+    borderRadius: 15,
     alignItems: "center",
     justifyContent: "center",
-    shadowColor: "#5C6BC0", // Shadow color to match the button for a cohesive look
+    shadowColor: "#5C6BC0",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.4,
     shadowRadius: 5,
@@ -122,7 +125,7 @@ const styles = StyleSheet.create({
   },
   text: {
     color: "#FFFFFF", // Maintained white for clear visibility
-    fontSize: 18, // Slightly larger for emphasis
+    fontSize: 16, // Slightly larger for emphasis
     fontWeight: "600", // Semi-bold for a balanced weight
   },
 });

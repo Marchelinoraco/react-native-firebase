@@ -18,18 +18,24 @@ export default function TabOneScreen() {
 
   const fetchRequests = async (userId) => {
     try {
+      console.log("Fetching requests for userId:", userId); // Log untuk memeriksa userId
       const q = query(
-        collection(db, "submissions"), // Koleksi data permohonan
+        collection(db, "submissions"),
         where("userId", "==", userId)
       );
       const querySnapshot = await getDocs(q);
-      const requestsData = querySnapshot.docs.map((doc) => ({
-        id: doc.id,
-        ...doc.data(),
-      }));
-      setRequests(requestsData); // Set data permohonan ke state
+      if (!querySnapshot.empty) {
+        console.log("Documents found:", querySnapshot.size); // Log jumlah dokumen yang ditemukan
+        const requestsData = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          ...doc.data(),
+        }));
+        setRequests(requestsData);
+      } else {
+        console.log("No documents found for userId:", userId); // Log jika tidak ada dokumen
+      }
     } catch (error) {
-      console.error("Error fetching requests:", error);
+      console.error("Error fetching requests:", error); // Log error
     }
   };
 
@@ -61,6 +67,8 @@ export default function TabOneScreen() {
       <Text style={styles.headerText}>Maksud Permohonan</Text>
       <Text style={styles.headerText}>Tanggal Permohonan</Text>
       <Text style={styles.headerText}>Status</Text>
+      <Text style={styles.headerText}>Keterangan</Text>{" "}
+      {/* Tambahkan kolom keterangan */}
     </View>
   );
 
@@ -69,6 +77,8 @@ export default function TabOneScreen() {
       <Text style={styles.cellText}>{item.maksudPermohonan}</Text>
       <Text style={styles.cellText}>{item.tanggalPermohonan}</Text>
       <Text style={styles.cellText}>{item.status || "Pending"}</Text>
+      <Text style={styles.cellText}>{item.keterangan || "-"}</Text>{" "}
+      {/* Tampilkan keterangan */}
     </View>
   );
 
@@ -97,12 +107,12 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#FAFAFA",
+    backgroundColor: "#001A6E",
   },
   title: {
     fontSize: 24,
     fontWeight: "700",
-    color: "#1A237E",
+    color: "#FAFAFA",
     marginBottom: 20,
     textAlign: "center",
   },
@@ -132,7 +142,7 @@ const styles = StyleSheet.create({
   cellText: {
     flex: 1,
     textAlign: "center",
-    color: "#333333",
+    color: "#FAFAFA",
   },
   noDataText: {
     textAlign: "center",

@@ -6,15 +6,17 @@ import {
   View,
   FlatList,
   Modal,
-  ScrollView,
+  TextInput,
   Platform,
+  ScrollView,
+  Image,
+  Linking,
 } from "react-native";
-import { db } from "../FirebaseConfig";
-import { auth } from "../FirebaseConfig";
-import { router } from "expo-router";
-import { collection, getDocs } from "firebase/firestore";
+import { db } from "../FirebaseConfig"; // Pastikan mengimpor konfigurasi Firebase Anda
+import { getDocs, collection, doc, updateDoc } from "firebase/firestore";
 import { getAuth } from "firebase/auth";
-import { updateDoc, doc } from "firebase/firestore";
+import { router } from "expo-router";
+import { auth } from "../FirebaseConfig";
 import * as Device from "expo-device";
 import * as Notifications from "expo-notifications";
 
@@ -61,49 +63,122 @@ async function registerForPushNotificationsAsync() {
 }
 
 export default function Admin() {
-  const [expoPushToken, setExpoPushToken] = useState("");
-  const [user, setUser] = useState(null);
-  const [requests, setRequests] = useState([]);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState(null);
-
+  const [expoToken, setExpoToken] = useState("");
   useEffect(() => {
     registerForPushNotificationsAsync()
       .then((token) => setExpoPushToken(token))
       .catch((err) => console.log(err));
   }, []);
 
-  const sendNotification = async () => {
-    const message = {
-      to: expoPushToken,
-      sound: "default",
-      title: "NEWG",
-      body: `berhasil 200 OK`,
-    };
-    await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: {
-        host: "exp.host",
-        accept: "application/json",
-        "accept-encoding": "gzip, deflate",
-        "content-type": "application/json",
-      },
-      body: JSON.stringify(message),
-    });
+  const [expoPushToken, setExpoPushToken] = useState("");
+  const [user, setUser] = useState(null);
+  const [userId, setUserId] = useState(null); // Tambahkan state userId
+  const [requests, setRequests] = useState([]);
+  const [modalVisible, setModalVisible] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [keterangan, setKeterangan] = useState("");
+
+  const fetchExpoPushTokenFromFirestore = async () => {
+    try {
+      const querySnapshot = await getDocs(collection(db, "submissions"));
+      const requestsData = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setRequests(requestsData);
+
+      if (requestsData.length > 0) {
+        const token = requestsData[0].expoPushToken;
+        setExpoPushToken(token);
+      }
+    } catch (error) {
+      console.error("Error fetching requests:", error);
+    }
   };
+
+  useEffect(() => {
+    fetchExpoPushTokenFromFirestore();
+  }, []);
 
   useEffect(() => {
     const unsubscribe = getAuth().onAuthStateChanged((user) => {
       if (user) {
         setUser(user);
-        fetchRequests(); // Ambil semua data dari Firestore
+        fetchRequests();
       } else {
-        router.replace("/"); // Jika tidak ada pengguna, kembali ke halaman login
+        router.replace("/");
       }
     });
 
     return () => unsubscribe();
   }, []);
+
+  const sendNotification = async (status) => {
+    if (!expoPushToken) {
+      console.error("No expoPushToken available!");
+      return;
+    }
+
+    let messageBody = "";
+    switch (status) {
+      case "Diterbitkan":
+        messageBody = "Permohonan Anda telah diterbitkan.";
+        break;
+      case "Diterima":
+        messageBody = "Permohonan Anda telah diterima.";
+        break;
+      case "Ditolak":
+        messageBody = "Permohonan Anda telah ditolak.";
+        break;
+      default:
+        messageBody = "Ada pembaruan pada permohonan Anda.";
+    }
+
+    const message = {
+      to: expoPushToken,
+      sound: "default",
+      title: "NEWG",
+      body: messageBody,
+    };
+
+    try {
+      const response = await fetch("https://exp.host/--/api/v2/push/send", {
+        method: "POST",
+        headers: {
+          host: "exp.host",
+          accept: "application/json",
+          "accept-encoding": "gzip, deflate",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(message),
+      });
+
+      if (!response.ok) {
+        throw new Error("Failed to send notification");
+      }
+
+      console.log("Notification sent successfully!");
+    } catch (error) {
+      console.error("Error sending notification:", error);
+    }
+  };
+
+  const handleUpdateKeterangan = async (id, keterangan) => {
+    if (!id || !keterangan) {
+      console.error("ID or keterangan is missing!");
+      return;
+    }
+
+    try {
+      const requestDoc = doc(db, "submissions", id);
+      await updateDoc(requestDoc, { keterangan });
+      setModalVisible(false);
+      setKeterangan("");
+      fetchRequests();
+    } catch (error) {
+      console.error("Error updating keterangan:", error);
+    }
+  };
 
   const fetchRequests = async () => {
     try {
@@ -112,10 +187,16 @@ export default function Admin() {
         id: doc.id,
         ...doc.data(),
       }));
-      setRequests(requestsData); // Set data permohonan ke state
+      setRequests(requestsData);
     } catch (error) {
       console.error("Error fetching requests:", error);
     }
+  };
+
+  const handleDetailPress = (item) => {
+    console.log("Selected Request:", item);
+    setSelectedRequest(item);
+    setModalVisible(true);
   };
 
   const handleSignOut = async () => {
@@ -129,12 +210,12 @@ export default function Admin() {
 
   const handleStatusChange = async (id, newStatus) => {
     try {
-      const requestDoc = doc(db, "submissions", id); // Ambil referensi dokumen berdasarkan ID
+      const requestDoc = doc(db, "submissions", id);
       await updateDoc(requestDoc, {
-        status: newStatus, // Perbarui nilai status
+        status: newStatus,
       });
-      fetchRequests(); // Ambil kembali data permohonan setelah update
-      sendNotification();
+      fetchRequests();
+      sendNotification(newStatus);
     } catch (error) {
       console.error("Error updating status:", error);
     }
@@ -148,11 +229,6 @@ export default function Admin() {
       <Text style={styles.headerText}>Aksi</Text>
     </View>
   );
-
-  const handleDetailPress = (item) => {
-    setSelectedRequest(item); // Set data request yang dipilih
-    setModalVisible(true); // Buka modal
-  };
 
   const renderItem = ({ item }) => (
     <View style={styles.tableRow}>
@@ -184,7 +260,7 @@ export default function Admin() {
         <Text style={styles.text}>Sign Out</Text>
       </TouchableOpacity>
 
-      {/* Modal untuk Menampilkan Detail */}
+      {/* Modal for displaying details */}
       {selectedRequest && (
         <Modal
           animationType="slide"
@@ -204,44 +280,40 @@ export default function Admin() {
                   <Text style={styles.boldText}>Maksud Permohonan:</Text>{" "}
                   {selectedRequest.maksudPermohonan}
                 </Text>
-                <Text>
-                  <Text style={styles.boldText}>NIK:</Text>{" "}
-                  {selectedRequest.nik}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>Pekerjaan:</Text>{" "}
-                  {selectedRequest.pekerjaan}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>NPWP:</Text>{" "}
-                  {selectedRequest.npwp}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>No Tlp:</Text>{" "}
-                  {selectedRequest.noTlp}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>Alamat:</Text>{" "}
-                  {selectedRequest.alamat}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>Kecamatan:</Text>{" "}
-                  {selectedRequest.kecamatan}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>Desa:</Text>{" "}
-                  {selectedRequest.desa}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>Tanggal Permohonan:</Text>{" "}
-                  {selectedRequest.tanggalPermohonan}
-                </Text>
-                <Text>
-                  <Text style={styles.boldText}>Status Permohonan:</Text>{" "}
-                  {selectedRequest.status}
-                </Text>
+                {/* Gambar */}
+                {selectedRequest.imageUrl && (
+                  <Image
+                    source={{ uri: selectedRequest.imageUrl }}
+                    style={styles.image}
+                    resizeMode="contain"
+                  />
+                )}
+                {/* Dokumen */}
+                {selectedRequest.dokumen_rtb && (
+                  <TouchableOpacity
+                    style={styles.documentButton}
+                    onPress={() => Linking.openURL(selectedRequest.dokumen_rtb)}
+                  >
+                    <Text style={styles.text}>Buka Dokumen</Text>
+                  </TouchableOpacity>
+                )}
+                {/* Keterangan */}
+                <TextInput
+                  style={styles.inputField}
+                  placeholder="Masukkan Keterangan"
+                  value={keterangan}
+                  onChangeText={setKeterangan}
+                />
+                <TouchableOpacity
+                  style={styles.submitButton}
+                  onPress={() =>
+                    handleUpdateKeterangan(selectedRequest?.id, keterangan)
+                  }
+                >
+                  <Text style={styles.text}>Simpan Keterangan</Text>
+                </TouchableOpacity>
 
-                {/* Tombol untuk mengubah status */}
+                {/* Status */}
                 <TouchableOpacity
                   style={styles.statusButton}
                   onPress={() =>
@@ -286,83 +358,67 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     padding: 20,
-    backgroundColor: "#F9F9F9",
+    backgroundColor: "#001A6E",
   },
   title: {
     fontSize: 24,
-    fontWeight: "700",
-    color: "#1E88E5",
+    fontWeight: "bold",
+    textAlign: "center",
+    marginTop: 30,
     marginBottom: 20,
-    marginVertical: 20,
+    color: "#FAFAFA",
+  },
+  noDataText: {
+    fontSize: 18,
+    color: "#888",
     textAlign: "center",
   },
   table: {
-    marginVertical: 20,
+    marginTop: 20,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#ddd",
+    backgroundColor: "#fff",
+    paddingHorizontal: 10,
+    paddingVertical: 15,
   },
   tableHeader: {
     flexDirection: "row",
-    backgroundColor: "#1E88E5",
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    borderRadius: 5,
-    marginBottom: 5,
+    justifyContent: "space-between",
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#ddd",
   },
   headerText: {
-    flex: 1,
-    fontWeight: "700",
-    color: "#FFFFFF",
-    textAlign: "center",
-    fontSize: 14,
+    fontSize: 16,
+    fontWeight: "bold",
   },
   tableRow: {
     flexDirection: "row",
+    justifyContent: "space-between",
+    paddingVertical: 15,
     borderBottomWidth: 1,
-    borderBottomColor: "#E0E0E0",
-    paddingVertical: 10,
-    paddingHorizontal: 5,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 5,
-    marginBottom: 5,
-    elevation: 1,
+    borderBottomColor: "#ddd",
   },
   cellText: {
-    flex: 1,
-    textAlign: "center",
-    color: "#333333",
     fontSize: 14,
+    flex: 1,
+    textAlign: "left",
   },
   detailText: {
-    color: "#1E88E5",
-    fontWeight: "600",
-    textAlign: "center",
-    textDecorationLine: "underline",
-    marginTop: 10,
-  },
-  noDataText: {
-    textAlign: "center",
-    color: "gray",
-    marginTop: 10,
-    fontSize: 16,
-    fontStyle: "italic",
+    fontSize: 14,
+    color: "#007BFF",
   },
   button: {
-    width: "100%",
-    backgroundColor: "#1E88E5",
-    padding: 15,
-    borderRadius: 10,
+    backgroundColor: "#FF5C5C",
+    paddingVertical: 12,
+    borderRadius: 5,
     alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 5,
-    marginTop: 20,
+    marginTop: 30,
   },
   text: {
     color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
@@ -371,50 +427,64 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   modalContent: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: "#fff",
+    width: "90%",
     padding: 20,
     borderRadius: 10,
-    width: "80%",
-    maxHeight: "80%",
   },
   modalTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginBottom: 15,
-  },
-  closeButton: {
-    backgroundColor: "#1E88E5",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 15,
-  },
-  statusButton: {
-    backgroundColor: "#4CAF50",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  tolakButton: {
-    backgroundColor: "#FF0000",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
-  },
-  terbitButton: {
-    backgroundColor: "#87CEEB",
-    padding: 10,
-    borderRadius: 5,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 10,
+    fontSize: 20,
+    fontWeight: "bold",
+    marginBottom: 10,
   },
   boldText: {
-    fontWeight: "700",
+    fontWeight: "bold",
+  },
+  image: {
+    width: "100%",
+    height: 200,
+    marginVertical: 10,
+  },
+  documentButton: {
+    backgroundColor: "#007BFF",
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  inputField: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    padding: 10,
+    borderRadius: 5,
+    marginVertical: 10,
+  },
+  submitButton: {
+    backgroundColor: "#28A745",
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+    marginVertical: 10,
+  },
+  statusButton: {
+    backgroundColor: "#007BFF",
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+    marginVertical: 5,
+  },
+  tolakButton: {
+    backgroundColor: "#FF5C5C",
+    paddingVertical: 12,
+    borderRadius: 5,
+    alignItems: "center",
+    marginVertical: 5,
+  },
+  closeButton: {
+    backgroundColor: "#6c757d",
+    paddingVertical: 10,
+    borderRadius: 5,
+    alignItems: "center",
+    marginTop: 10,
   },
 });

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Tabs } from "expo-router";
-import { Pressable, Alert } from "react-native";
+import { Pressable, Alert, StyleSheet } from "react-native";
 import Colors from "@/constants/Colors";
 import { useColorScheme } from "@/components/useColorScheme";
 import { auth } from "@/FirebaseConfig";
@@ -25,7 +25,7 @@ export default function TabLayout() {
     try {
       await auth.signOut();
       Alert.alert("Sign Out", "You have been signed out successfully.");
-      router.push("/"); // Kembali ke halaman login setelah sign out
+      router.push("../"); // Kembali ke halaman login setelah sign out
     } catch (error) {
       Alert.alert("Error", error.message);
     }
@@ -53,14 +53,16 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? "light"].tint,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabBarLabel,
         headerShown: true,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
-          title: "Profil",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          title: "Home",
+          tabBarIcon: ({ color }) => <TabBarIcon name="home" color={color} />,
           headerRight: () => (
             <Pressable
               onPress={handleSignOut}
@@ -71,18 +73,19 @@ export default function TabLayout() {
               <FontAwesome
                 name="sign-out"
                 size={25}
-                color={Colors[colorScheme ?? "light"].text}
+                color={Colors.text}
                 style={{ marginRight: 15 }}
               />
             </Pressable>
           ),
         }}
       />
+      {/* Tambahkan tab lainnya */}
       <Tabs.Screen
         name="two"
         options={{
           title: "Form",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
+          tabBarIcon: ({ color }) => <TabBarIcon name="file" color={color} />,
           headerRight: () => (
             <Pressable
               onPress={handleSignOut}
@@ -93,51 +96,7 @@ export default function TabLayout() {
               <FontAwesome
                 name="sign-out"
                 size={25}
-                color={Colors[colorScheme ?? "light"].text}
-                style={{ marginRight: 15 }}
-              />
-            </Pressable>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="three"
-        options={{
-          title: "Storage",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Pressable
-              onPress={handleSignOut}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <FontAwesome
-                name="sign-out"
-                size={25}
-                color={Colors[colorScheme ?? "light"].text}
-                style={{ marginRight: 15 }}
-              />
-            </Pressable>
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="four"
-        options={{
-          title: "Functions",
-          tabBarIcon: ({ color }) => <TabBarIcon name="code" color={color} />,
-          headerRight: () => (
-            <Pressable
-              onPress={handleSignOut}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.5 : 1,
-              })}
-            >
-              <FontAwesome
-                name="sign-out"
-                size={25}
-                color={Colors[colorScheme ?? "light"].text}
+                color={Colors.text}
                 style={{ marginRight: 15 }}
               />
             </Pressable>
@@ -147,3 +106,18 @@ export default function TabLayout() {
     </Tabs>
   );
 }
+
+const styles = StyleSheet.create({
+  tabBar: {
+    backgroundColor: Colors.light.background,
+    borderTopWidth: 0,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 5 },
+    shadowOpacity: 0.1,
+    shadowRadius: 10,
+    elevation: 10,
+  },
+  tabBarLabel: {
+    fontSize: 12,
+  },
+});
